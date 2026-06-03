@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>川麻助手</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+    <h1>川麻助手</h1>
+    <p class="subtitle">血战到底 · 缺一门</p>
+</header>
+
+<main>
+    <section class="que-men">
+        <label>缺门：</label>
+        <div class="que-men-buttons">
+            <button class="que-btn m" data-suit="m">缺万</button>
+            <button class="que-btn p" data-suit="p">缺饼</button>
+            <button class="que-btn s" data-suit="s">缺条</button>
+        </div>
+    </section>
+
+    <section class="tile-picker">
+        <h2>点击选牌</h2>
+        <div class="suit-row" id="suit-m"></div>
+        <div class="suit-row" id="suit-p"></div>
+        <div class="suit-row" id="suit-s"></div>
+    </section>
+
+    <section class="hand-section">
+        <div class="hand-header">
+            <h2>手牌 <span id="hand-count">0</span>/<span id="hand-max">13</span>（点牌移除）</h2>
+            <button id="clear-hand">清空</button>
+        </div>
+        <div id="hand-display" class="hand-display"></div>
+    </section>
+
+    <section class="melds-section">
+        <h2>副露（碰/杠）</h2>
+        <div id="melds-display" class="melds-display"></div>
+        <button id="add-meld">+ 添加副露</button>
+    </section>
+
+    <button id="analyze-btn" class="analyze-btn">分析听牌</button>
+
+    <section id="results"></section>
+</main>
+
+<div id="msg"></div>
+
+<div id="meld-modal" class="modal-overlay">
+    <div class="modal-box">
+        <h3>添加副露</h3>
+        <div class="modal-type-btns">
+            <button id="meld-type-pong" class="active">碰（3张）</button>
+            <button id="meld-type-kong-open">明杠（4张）</button>
+            <button id="meld-type-kong-closed">暗杠（4张）</button>
+        </div>
+        <div id="meld-preview"></div>
+        <div id="meld-picker"></div>
+        <div class="modal-actions">
+            <button id="meld-cancel">取消</button>
+            <button id="meld-confirm">确认</button>
+        </div>
+    </div>
+</div>
+
+<script src="logic.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
