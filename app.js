@@ -4,7 +4,7 @@ const state = {
     hand: [],
     melds: [],
     queMen: null,
-    maxHand: 13,
+    maxHand: 14,  // 摸牌后总张数：14 - 副露占用
 };
 
 function init() {
@@ -49,14 +49,12 @@ function addTile(tile) {
         return;
     }
     state.hand.push(tile);
-    renderHand();
-    clearResults();
+    renderHand();  // renderHand 内部调用 autoAnalyze，不再重复 clearResults
 }
 
 function removeTile(idx) {
     state.hand.splice(idx, 1);
-    renderHand();
-    clearResults();
+    renderHand();  // 同上
 }
 
 function countTile(tile) {
@@ -65,20 +63,18 @@ function countTile(tile) {
     return inHand + inMelds;
 }
 
+// maxHand：摸牌后的暗手牌数 = 14 - 面子组数×3 - 杠数
 function updateMaxHand() {
     const kongCount = state.melds.filter(m => m.type === 'kong_open' || m.type === 'kong_closed').length;
-    state.maxHand = 13 - state.melds.length * 3 - kongCount;
+    state.maxHand = 14 - state.melds.length * 3 - kongCount;
 }
 
-// ---- 手牌渲染 ----
+// ---- 手牌渲染 + 自动分析 ----
 function renderHand() {
     updateMaxHand();
     const sorted = sortTiles(state.hand);
     const display = document.getElementById('hand-display');
     display.innerHTML = '';
-
-    // 用已消耗索引来处理重复牌的移除
-    const handCopy = [...state.hand];
 
     sorted.forEach(tile => {
         const div = document.createElement('div');
@@ -94,6 +90,21 @@ function renderHand() {
     document.getElementById('hand-count').textContent = state.hand.length;
     document.getElementById('hand-count').className = state.hand.length === state.maxHand ? 'count-full' : '';
     document.getElementById('hand-max').textContent = state.maxHand;
+
+    autoAnalyze();
+}
+
+function autoAnalyze() {
+    const lacking = state.maxHand - state.hand.length;
+    if (lacking > 0) {
+        if (state.hand.length > 0) {
+            showResults(`<div class="hint">还差 <strong>${lacking}</strong> 张</div>`);
+        } else {
+            clearResults();
+        }
+    } else {
+        analyze();
+    }
 }
 
 // ---- 副露 ----
@@ -177,14 +188,13 @@ function confirmMeld() {
     }
     state.melds.push({ type: pendingMeld.type, tiles: [...pendingMeld.tiles] });
     updateMaxHand();
-    // 超出限制时截断手牌
+    // 若手牌超出新上限则截断
     while (state.hand.length > state.maxHand) {
         state.hand.pop();
     }
     renderMelds();
-    renderHand();
+    renderHand();  // 内部调用 autoAnalyze
     closeMeldModal();
-    clearResults();
 }
 
 function renderMelds() {
@@ -209,7 +219,6 @@ function renderMelds() {
             updateMaxHand();
             renderMelds();
             renderHand();
-            clearResults();
         });
         div.appendChild(del);
         container.appendChild(div);
@@ -222,15 +231,11 @@ function setQueMen(suit) {
     document.querySelectorAll('.que-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.suit === state.queMen);
     });
-    clearResults();
+    autoAnalyze();
 }
 
 // ---- 分析 ----
 function analyze() {
-    if (state.hand.length === 0) {
-        showMsg('请先输入手牌');
-        return;
-    }
     const { results, error } = analyzeTenpai(state.hand, state.melds, state.queMen);
     if (error) {
         showResults(`<div class="error">${error}</div>`);
@@ -269,7 +274,6 @@ function renderResults(results) {
 function showResults(html) {
     const el = document.getElementById('results');
     el.innerHTML = html;
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function clearResults() {
@@ -288,9 +292,7 @@ function bindEvents() {
     document.getElementById('clear-hand').addEventListener('click', () => {
         state.hand = [];
         renderHand();
-        clearResults();
     });
-    document.getElementById('analyze-btn').addEventListener('click', analyze);
     document.getElementById('add-meld').addEventListener('click', openMeldModal);
     document.getElementById('meld-confirm').addEventListener('click', confirmMeld);
     document.getElementById('meld-cancel').addEventListener('click', closeMeldModal);
