@@ -46,6 +46,7 @@ function canFormMelds(sorted) {
     return false;
 }
 
+// 七对/龙七对检测：手牌必须恰好14张
 function checkSevenPairs(sorted) {
     if (sorted.length !== 14) return false;
     const counts = {};
@@ -60,6 +61,7 @@ function checkSevenPairs(sorted) {
     return false;
 }
 
+// 标准胡牌：concealed tiles 满足 meldsNeeded*3+2 张（即 4 面子+1 将）
 function canWinStandard(sorted, meldsNeeded) {
     if (sorted.length !== meldsNeeded * 3 + 2) return false;
     const tried = new Set();
@@ -74,6 +76,9 @@ function canWinStandard(sorted, meldsNeeded) {
     return false;
 }
 
+// isWinningHand：14 张总牌力校验
+// concealedTiles：暗手牌（应为 4-melds.length 组面子+1将所需张数）
+// melds：副露列表
 function isWinningHand(concealedTiles, melds) {
     const sorted = sortTiles(concealedTiles);
     const meldsNeeded = 4 - melds.length;
@@ -139,6 +144,7 @@ function getFanTypes(concealedTiles, melds, extraCtx) {
     const suits = new Set(allTiles.map(getSuit));
     const isQingYiSe = suits.size === 1;
 
+    // 七对 / 龙七对（副露时不可能）
     if (melds.length === 0) {
         const qd = checkSevenPairs(sorted);
         if (qd) {
@@ -153,9 +159,12 @@ function getFanTypes(concealedTiles, melds, extraCtx) {
     const struct = extractStructure(sorted, meldsNeeded);
     if (!struct) return applyExtra([{ name: '平胡', fan: 1 }], extraCtx);
 
+    // 将所有面子（暗+副露）统一为 triplet/sequence 类型
+    const isTripletMeld = (type) =>
+        type === 'triplet' || type === 'pong' || type === 'kong_open' || type === 'kong_closed';
     const allMeldTypes = [
         ...struct.melds,
-        ...melds.map(m => ({ type: (m.type === 'kong_open' || m.type === 'kong_closed') ? 'triplet' : m.type }))
+        ...melds.map(m => ({ type: isTripletMeld(m.type) ? 'triplet' : 'sequence' }))
     ];
     const isDuiDui = allMeldTypes.every(m => m.type === 'triplet');
 
@@ -185,15 +194,18 @@ function totalFan(fans) {
 }
 
 // ---- 听牌分析（主入口）----
-// handTiles: 暗手牌（13 - 副露面子数×3 张，杠再-1）
-// melds: 副露 [{ type: 'pong'|'kong_open'|'kong_closed', tiles: [...] }]
-// queMen: 缺门 suit ('m'|'p'|'s'|null)
+// handTiles：暗手牌
+//   正确张数 = 14 - 副露面子数×3 - 杠数（即摸牌后14张状态）
+//   例：0副露→14张，1碰→11张，1明杠→10张，1暗杠→10张
+// melds：副露 [{ type: 'pong'|'kong_open'|'kong_closed', tiles: [...] }]
+// queMen：缺门 suit ('m'|'p'|'s'|null)
 function analyzeTenpai(handTiles, melds, queMen) {
     const kongCount = melds.filter(m => m.type === 'kong_open' || m.type === 'kong_closed').length;
-    const expected = 13 - melds.length * 3 - kongCount;
+    // 正确期望张数：14 张完整手牌 - 副露占用的暗手张数
+    const expected = 14 - melds.length * 3 - kongCount;
 
     if (handTiles.length !== expected) {
-        return { error: `手牌张数应为 ${expected} 张，当前 ${handTiles.length} 张` };
+        return { error: `手牌张数应为 ${expected} 张（摸牌后），当前 ${handTiles.length} 张` };
     }
 
     const results = [];
@@ -205,13 +217,14 @@ function analyzeTenpai(handTiles, melds, queMen) {
         triedDiscard.add(discard);
 
         const remaining = [...handTiles];
-        remaining.splice(i, 1);
+        remaining.splice(i, 1);  // 打出后剩余 expected-1 张
 
         const winTiles = [];
         for (const suit of SUITS) {
             if (queMen && suit === queMen) continue;
             for (let val = 1; val <= 9; val++) {
                 const candidate = val + suit;
+                // 加上候选牌后变回 expected 张（完整胡牌张数）
                 const testHand = [...remaining, candidate];
                 if (isWinningHand(testHand, melds)) {
                     winTiles.push(candidate);
