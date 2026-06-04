@@ -183,6 +183,13 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
 .result-tile.suit-p { background: var(--pin); }
 .result-tile.suit-s { background: var(--sou); }
 
+.hint {
+    text-align: center; color: #aaa; padding: 16px;
+    background: var(--card); border-radius: 12px; border: 1px dashed var(--border);
+    font-size: 1rem;
+}
+.hint strong { color: var(--accent); font-size: 1.3rem; }
+
 .no-tenpai {
     text-align: center; color: #999; padding: 20px;
     background: var(--card); border-radius: 12px; border: 1px solid var(--border);
@@ -231,3 +238,12 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
 .modal-actions button { flex: 1; padding: 10px; border-radius: 10px; border: none; font-size: 1rem; font-weight: bold; cursor: pointer; }
 #meld-confirm { background: var(--accent); color: white; }
 #meld-cancel { background: #eee; color: #666; }
+
+/* 进张分析 */
+.shanten-info { text-align: center; padding: 10px 0 6px; color: var(--accent); font-size: 0.95rem; }
+.shanten-info strong { font-size: 1.1rem; }
+.shanten-group-label {
+    text-align: center; color: #888; font-size: 0.82rem;
+    padding: 4px 0; margin: 6px 0 2px;
+    border-top: 1px dashed var(--border);
+}
