@@ -44,7 +44,7 @@ section {
 
 section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing: 1px; }
 
-/* 缺门 */
+/* 缂洪棬 */
 .que-men { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .que-men label { font-weight: bold; white-space: nowrap; }
 .que-men-buttons { display: flex; gap: 8px; }
@@ -66,7 +66,7 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
 .que-btn.active.p { background: var(--pin); color: white; }
 .que-btn.active.s { background: var(--sou); color: white; }
 
-/* 选牌 */
+/* 閫夌墝 */
 .suit-row { display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
 
 .tile-btn {
@@ -90,7 +90,7 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
 .tile-val { font-size: 1.3rem; }
 .tile-suit { font-size: 0.6rem; opacity: .85; }
 
-/* 手牌 */
+/* 鎵嬬墝 */
 .hand-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .hand-header h2 { margin: 0; font-size: 0.9rem; color: #666; }
 #hand-count { color: var(--accent); font-weight: bold; }
@@ -120,7 +120,7 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
 .hand-tile.suit-s { background: var(--sou); }
 .hand-tile.empty { background: #e0e0e0; border-color: #ccc; color: #999; }
 
-/* 副露 */
+/* 鍓湶 */
 .melds-display { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
 .meld-group {
     display: flex; align-items: center; gap: 4px;
@@ -139,7 +139,7 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
     background: none; color: #999; font-size: 0.9rem; cursor: pointer;
 }
 
-/* 分析按钮 */
+/* 鍒嗘瀽鎸夐挳 */
 .analyze-btn {
     display: block; width: 100%; padding: 14px;
     background: linear-gradient(135deg, #8b0000, #c0392b);
@@ -149,7 +149,7 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
 }
 .analyze-btn:active { opacity: .85; }
 
-/* 结果 */
+/* 缁撴灉 */
 #results { background: none; border: none; padding: 0; }
 #results h2 { font-size: 1rem; color: #555; margin-bottom: 8px; background: none; border: none; padding: 0; }
 
@@ -199,7 +199,7 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
     border-radius: 8px; border: 1px solid #f5c6c6;
 }
 
-/* 消息 */
+/* 娑堟伅 */
 #msg {
     position: fixed; bottom: 30px; left: 50%;
     transform: translateX(-50%) translateY(60px);
@@ -210,7 +210,7 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
 }
 #msg.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* 副露 Modal */
+/* 鍓湶 Modal */
 .modal-overlay {
     display: none; position: fixed; inset: 0;
     background: rgba(0,0,0,.5); z-index: 200; align-items: flex-end;
@@ -239,7 +239,27 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
 #meld-confirm { background: var(--accent); color: white; }
 #meld-cancel { background: #eee; color: #666; }
 
-/* 进张分析 */
+/* 鑳＄墝妯箙 */
+.win-banner {
+    text-align: center;
+    background: linear-gradient(135deg, #27ae60, #1e8449);
+    color: white;
+    border-radius: 12px;
+    padding: 18px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    box-shadow: 0 2px 8px rgba(39,174,96,.35);
+}
+
+/* 鍚墝寰界珷锛堢豢鑹诧級*/
+.tenpai-badge {
+    background: #e8f5e9 !important;
+    color: #27ae60 !important;
+    border-color: #a5d6a7 !important;
+}
+
+/* 杩涘紶鍒嗘瀽 */
 .shanten-info { text-align: center; padding: 10px 0 6px; color: var(--accent); font-size: 0.95rem; }
 .shanten-info strong { font-size: 1.1rem; }
 .shanten-group-label {
