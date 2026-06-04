@@ -2,8 +2,8 @@
 
 :root {
     --man: #c0392b;
-    --pin: #27ae60;
-    --sou: #2980b9;
+    --pin: #2980b9;
+    --sou: #27ae60;
     --bg: #f5f0e8;
     --card: #fff;
     --border: #d9c9a8;
@@ -65,6 +65,7 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
 .que-btn.active.m { background: var(--man); color: white; }
 .que-btn.active.p { background: var(--pin); color: white; }
 .que-btn.active.s { background: var(--sou); color: white; }
+
 
 /* 选牌 */
 .suit-row { display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
@@ -265,6 +266,8 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
 .multi-fan { flex-direction: column; gap: 4px; }
 .fan-group { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .fan-group .win-tiles { display: flex; flex-wrap: wrap; gap: 3px; }
+.win-tile-item { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.tile-left { font-size: 0.65rem; color: #888; line-height: 1; }
 
 /* 进张分析 */
 .shanten-info { text-align: center; padding: 10px 0 6px; color: var(--accent); font-size: 0.95rem; }
