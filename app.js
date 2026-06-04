@@ -97,51 +97,11 @@ function renderHand() {
 function autoAnalyze() {
     if (state.hand.length === 0) { clearResults(); return; }
     if (state.hand.length < state.maxHand) {
-        analyzeAndShowEffective();
+        // 未摸牌，只提示还差几张
+        showResults(`<div class="hint">还差 <strong>${state.maxHand - state.hand.length}</strong> 张</div>`);
     } else {
         analyze();
     }
-}
-
-function analyzeAndShowEffective() {
-    const { results, currentShanten } = analyzeEffective(state.hand, state.melds, state.queMen);
-    renderEffectiveResults(results, currentShanten);
-}
-
-function renderEffectiveResults(results, currentShanten) {
-    const label = s => s <= -1 ? '已胡' : s === 0 ? '听牌' : `${s}向听`;
-    const lacking = state.maxHand - state.hand.length;
-    let html = `<div class="shanten-info">当前 <strong>${label(currentShanten)}</strong> · 还差 <strong>${lacking}</strong> 张</div>`;
-
-    const useful = results.filter(r => r.effectiveTiles.length > 0);
-    if (useful.length === 0) {
-        html += `<div class="no-tenpai">暂无有效进张</div>`;
-        showResults(html); return;
-    }
-
-    let lastShanten = null;
-    useful.forEach(r => {
-        if (r.shanten !== lastShanten) {
-            lastShanten = r.shanten;
-            html += `<div class="shanten-group-label">打后 ${label(r.shanten)}</div>`;
-        }
-        const tilesHtml = r.effectiveTiles.map(t =>
-            `<div class="result-tile suit-${getSuit(t)}">${makeTileInner(t)}</div>`
-        ).join('');
-        html += `
-        <div class="result-card">
-            <div class="result-header">
-                <span class="discard-label">打</span>
-                <div class="result-tile suit-${getSuit(r.discard)}">${makeTileInner(r.discard)}</div>
-                <span class="fan-badge">进张 ${r.totalCount} 张</span>
-            </div>
-            <div class="result-body">
-                <span class="win-label">有效进张：</span>
-                <div class="win-tiles">${tilesHtml}</div>
-            </div>
-        </div>`;
-    });
-    showResults(html);
 }
 
 // ---- 副露 ----
@@ -271,40 +231,123 @@ function setQueMen(suit) {
     autoAnalyze();
 }
 
-// ---- 分析 ----
+// ---- 分析（摸牌后 14 张）----
+// 每种打法：能听牌的显示胡牌张+番型，不能听的显示有效进张
 function analyze() {
-    const { results, error } = analyzeTenpai(state.hand, state.melds, state.queMen);
-    if (error) {
-        showResults(`<div class="error">${error}</div>`);
-        return;
+    const { hand, melds, queMen } = state;
+    const meldTiles = melds.flatMap(m => m.tiles);
+    const results = [];
+    const tried = new Set();
+
+    for (let i = 0; i < hand.length; i++) {
+        const discard = hand[i];
+        if (tried.has(discard)) continue;
+        tried.add(discard);
+
+        const remaining = [...hand];
+        remaining.splice(i, 1);
+
+        // 检测听牌
+        const winTiles = [];
+        for (const suit of SUITS) {
+            if (queMen && suit === queMen) continue;
+            for (let val = 1; val <= 9; val++) {
+                const cand = val + suit;
+                if (isWinningHand([...remaining, cand], melds)) winTiles.push(cand);
+            }
+        }
+
+        if (winTiles.length > 0) {
+            const fans = getFanTypes([...remaining, winTiles[0]], melds, null);
+            results.push({ discard, type: 'tenpai', winTiles, fans, total: totalFan(fans) });
+        } else {
+            // 进张分析
+            const remShanten = calcShanten(remaining, melds);
+            const effectiveTiles = [];
+            let totalCount = 0;
+            for (const suit of SUITS) {
+                if (queMen && suit === queMen) continue;
+                for (let val = 1; val <= 9; val++) {
+                    const cand = val + suit;
+                    const used = remaining.filter(t => t === cand).length
+                               + meldTiles.filter(t => t === cand).length;
+                    const left = 4 - used;
+                    if (left <= 0) continue;
+                    if (calcShanten([...remaining, cand], melds) < remShanten) {
+                        effectiveTiles.push(cand);
+                        totalCount += left;
+                    }
+                }
+            }
+            results.push({ discard, type: 'effective', shanten: remShanten, effectiveTiles, totalCount });
+        }
     }
+
     if (results.length === 0) {
-        showResults('<div class="no-tenpai">当前手牌没有听牌出法</div>');
+        showResults('<div class="no-tenpai">无分析结果</div>');
         return;
     }
-    renderResults(results);
+
+    // 听牌出法优先，按番数排；进张按向听数、张数排
+    results.sort((a, b) => {
+        if (a.type === 'tenpai' && b.type !== 'tenpai') return -1;
+        if (a.type !== 'tenpai' && b.type === 'tenpai') return 1;
+        if (a.type === 'tenpai') return b.total - a.total || b.winTiles.length - a.winTiles.length;
+        return a.shanten - b.shanten || b.totalCount - a.totalCount;
+    });
+
+    renderCombinedResults(results);
 }
 
-function renderResults(results) {
+function renderCombinedResults(results) {
     let html = '';
+    let tenpaiHeaderShown = false, effectiveHeaderShown = false;
+
     results.forEach(r => {
-        const fanNames = r.fans.map(f => `${f.name}(${f.fan}番)`).join(' + ');
-        const winTilesHtml = r.winTiles.map(t =>
-            `<div class="result-tile suit-${getSuit(t)}">${makeTileInner(t)}</div>`
-        ).join('');
-        html += `
-        <div class="result-card">
-            <div class="result-header">
-                <span class="discard-label">打</span>
-                <div class="result-tile suit-${getSuit(r.discard)}">${makeTileInner(r.discard)}</div>
-                <span class="fan-badge">${r.total}番・${fanNames}</span>
-            </div>
-            <div class="result-body">
-                <span class="win-label">听 ${r.winTiles.length} 张：</span>
-                <div class="win-tiles">${winTilesHtml}</div>
-            </div>
-        </div>`;
+        if (r.type === 'tenpai' && !tenpaiHeaderShown) {
+            html += '<div class="shanten-group-label">听牌出法</div>';
+            tenpaiHeaderShown = true;
+        }
+        if (r.type === 'effective' && !effectiveHeaderShown) {
+            html += '<div class="shanten-group-label">进张出法</div>';
+            effectiveHeaderShown = true;
+        }
+
+        if (r.type === 'tenpai') {
+            const fanNames = r.fans.map(f => `${f.name}(${f.fan}番)`).join(' + ');
+            const tilesHtml = r.winTiles.map(t =>
+                `<div class="result-tile suit-${getSuit(t)}">${makeTileInner(t)}</div>`).join('');
+            html += `
+            <div class="result-card">
+                <div class="result-header">
+                    <span class="discard-label">打</span>
+                    <div class="result-tile suit-${getSuit(r.discard)}">${makeTileInner(r.discard)}</div>
+                    <span class="fan-badge">${r.total}番・${fanNames}</span>
+                </div>
+                <div class="result-body">
+                    <span class="win-label">听 ${r.winTiles.length} 张：</span>
+                    <div class="win-tiles">${tilesHtml}</div>
+                </div>
+            </div>`;
+        } else {
+            const sLabel = r.shanten === 0 ? '听牌' : `${r.shanten}向听`;
+            const tilesHtml = r.effectiveTiles.map(t =>
+                `<div class="result-tile suit-${getSuit(t)}">${makeTileInner(t)}</div>`).join('');
+            html += `
+            <div class="result-card">
+                <div class="result-header">
+                    <span class="discard-label">打</span>
+                    <div class="result-tile suit-${getSuit(r.discard)}">${makeTileInner(r.discard)}</div>
+                    <span class="fan-badge">${sLabel} · 进张 ${r.totalCount} 张</span>
+                </div>
+                <div class="result-body">
+                    <span class="win-label">有效进张：</span>
+                    <div class="win-tiles">${tilesHtml}</div>
+                </div>
+            </div>`;
+        }
     });
+
     showResults(html);
 }
 
