@@ -105,21 +105,43 @@ function canWin(concealedTiles, melds, queMen) {
 
 function autoAnalyze() {
     if (state.hand.length === 0) { clearResults(); return; }
-    if (state.hand.length === state.maxHand) {
-        // 摸牌后：先检查是否已胡
-        if (canWin(state.hand, state.melds, state.queMen)) {
-            const fans = getFanTypes(state.hand, state.melds, null);
+    const { queMen, hand, melds } = state;
+    const hasQueMenInHand = queMen && hand.some(t => getSuit(t) === queMen);
+
+    if (hand.length > state.maxHand) {
+        showResults('<div class="penalty-banner">大相公！手牌超出上限</div>');
+        return;
+    }
+
+    if (hand.length === state.maxHand) {
+        if (hasQueMenInHand) {
+            if (isWinningHand(hand, melds)) {
+                showResults(`<div class="penalty-banner">大花猪！手中有${SUIT_NAMES[queMen]}，缺门违规，赔三家</div>`);
+            } else {
+                analyze();
+                const el = document.getElementById('results');
+                el.innerHTML = `<div class="penalty-banner">大相公！先打出${SUIT_NAMES[queMen]}</div>` + el.innerHTML;
+            }
+        } else if (isWinningHand(hand, melds)) {
+            const fans = getFanTypes(hand, melds, null);
             const total = totalFan(fans);
             const fanNames = fans.map(f => `${f.name}(${f.fan}番)`).join(' + ');
             showResults(`<div class="win-banner">胡牌！${total}番・${fanNames}</div>`);
         } else {
             analyze();
         }
-    } else if (state.hand.length === state.maxHand - 1) {
-        // 差1张：检测是否已听牌
-        checkTenpaiState();
+    } else if (hand.length === state.maxHand - 1) {
+        if (hasQueMenInHand) {
+            showResults(`<div class="penalty-banner">小相公！先打出${SUIT_NAMES[queMen]}</div>`);
+        } else {
+            checkTenpaiState();
+        }
     } else {
-        showResults(`<div class="hint">还差 <strong>${state.maxHand - state.hand.length}</strong> 张</div>`);
+        if (hasQueMenInHand) {
+            showResults(`<div class="penalty-banner">小相公！先打出${SUIT_NAMES[queMen]}</div>`);
+        } else {
+            showResults(`<div class="hint">还差 <strong>${state.maxHand - hand.length}</strong> 张</div>`);
+        }
     }
 }
 
@@ -360,8 +382,11 @@ function analyze() {
         return;
     }
 
-    // 听牌出法优先，按番数排；进张按向听数、张数排
+    // 先打缺 > 听牌出法 > 进张
     results.sort((a, b) => {
+        const aQue = queMen && getSuit(a.discard) === queMen;
+        const bQue = queMen && getSuit(b.discard) === queMen;
+        if (aQue !== bQue) return aQue ? -1 : 1;
         if (a.type === 'tenpai' && b.type !== 'tenpai') return -1;
         if (a.type !== 'tenpai' && b.type === 'tenpai') return 1;
         if (a.type === 'tenpai') return b.total - a.total || b.winTiles.length - a.winTiles.length;
