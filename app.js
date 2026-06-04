@@ -94,11 +94,20 @@ function renderHand() {
     autoAnalyze();
 }
 
+// 缺门检查包装：手牌或副露含缺门花色则不能胡
+function canWin(concealedTiles, melds, queMen) {
+    if (queMen) {
+        if (concealedTiles.some(t => getSuit(t) === queMen)) return false;
+        if (melds.some(m => m.tiles.some(t => getSuit(t) === queMen))) return false;
+    }
+    return isWinningHand(concealedTiles, melds);
+}
+
 function autoAnalyze() {
     if (state.hand.length === 0) { clearResults(); return; }
     if (state.hand.length === state.maxHand) {
         // 摸牌后：先检查是否已胡
-        if (isWinningHand(state.hand, state.melds)) {
+        if (canWin(state.hand, state.melds, state.queMen)) {
             const fans = getFanTypes(state.hand, state.melds, null);
             const total = totalFan(fans);
             const fanNames = fans.map(f => `${f.name}(${f.fan}番)`).join(' + ');
@@ -121,7 +130,7 @@ function checkTenpaiState() {
         if (queMen && suit === queMen) continue;
         for (let val = 1; val <= 9; val++) {
             const cand = val + suit;
-            if (isWinningHand([...hand, cand], melds)) winTiles.push(cand);
+            if (canWin([...hand, cand], melds, queMen)) winTiles.push(cand);
         }
     }
     if (winTiles.length > 0) {
@@ -306,7 +315,7 @@ function analyze() {
             if (queMen && suit === queMen) continue;
             for (let val = 1; val <= 9; val++) {
                 const cand = val + suit;
-                if (isWinningHand([...remaining, cand], melds)) winTiles.push(cand);
+                if (canWin([...remaining, cand], melds, queMen)) winTiles.push(cand);
             }
         }
 
