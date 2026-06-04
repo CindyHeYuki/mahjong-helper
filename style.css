@@ -183,6 +183,13 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
 .result-tile.suit-p { background: var(--pin); }
 .result-tile.suit-s { background: var(--sou); }
 
+.hint {
+    text-align: center; color: #aaa; padding: 16px;
+    background: var(--card); border-radius: 12px; border: 1px dashed var(--border);
+    font-size: 1rem;
+}
+.hint strong { color: var(--accent); font-size: 1.3rem; }
+
 .no-tenpai {
     text-align: center; color: #999; padding: 20px;
     background: var(--card); border-radius: 12px; border: 1px solid var(--border);
