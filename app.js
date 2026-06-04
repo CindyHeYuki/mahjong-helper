@@ -95,16 +95,53 @@ function renderHand() {
 }
 
 function autoAnalyze() {
-    const lacking = state.maxHand - state.hand.length;
-    if (lacking > 0) {
-        if (state.hand.length > 0) {
-            showResults(`<div class="hint">还差 <strong>${lacking}</strong> 张</div>`);
-        } else {
-            clearResults();
-        }
+    if (state.hand.length === 0) { clearResults(); return; }
+    if (state.hand.length < state.maxHand) {
+        analyzeAndShowEffective();
     } else {
         analyze();
     }
+}
+
+function analyzeAndShowEffective() {
+    const { results, currentShanten } = analyzeEffective(state.hand, state.melds, state.queMen);
+    renderEffectiveResults(results, currentShanten);
+}
+
+function renderEffectiveResults(results, currentShanten) {
+    const label = s => s <= -1 ? '已胡' : s === 0 ? '听牌' : `${s}向听`;
+    const lacking = state.maxHand - state.hand.length;
+    let html = `<div class="shanten-info">当前 <strong>${label(currentShanten)}</strong> · 还差 <strong>${lacking}</strong> 张</div>`;
+
+    const useful = results.filter(r => r.effectiveTiles.length > 0);
+    if (useful.length === 0) {
+        html += `<div class="no-tenpai">暂无有效进张</div>`;
+        showResults(html); return;
+    }
+
+    let lastShanten = null;
+    useful.forEach(r => {
+        if (r.shanten !== lastShanten) {
+            lastShanten = r.shanten;
+            html += `<div class="shanten-group-label">打后 ${label(r.shanten)}</div>`;
+        }
+        const tilesHtml = r.effectiveTiles.map(t =>
+            `<div class="result-tile suit-${getSuit(t)}">${makeTileInner(t)}</div>`
+        ).join('');
+        html += `
+        <div class="result-card">
+            <div class="result-header">
+                <span class="discard-label">打</span>
+                <div class="result-tile suit-${getSuit(r.discard)}">${makeTileInner(r.discard)}</div>
+                <span class="fan-badge">进张 ${r.totalCount} 张</span>
+            </div>
+            <div class="result-body">
+                <span class="win-label">有效进张：</span>
+                <div class="win-tiles">${tilesHtml}</div>
+            </div>
+        </div>`;
+    });
+    showResults(html);
 }
 
 // ---- 副露 ----
@@ -249,7 +286,7 @@ function analyze() {
 }
 
 function renderResults(results) {
-    let html = '<h2>听牌分析</h2>';
+    let html = '';
     results.forEach(r => {
         const fanNames = r.fans.map(f => `${f.name}(${f.fan}番)`).join(' + ');
         const winTilesHtml = r.winTiles.map(t =>
