@@ -261,6 +261,11 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
     border-color: #a5d6a7 !important;
 }
 
+/* 多番型分组 */
+.multi-fan { flex-direction: column; gap: 4px; }
+.fan-group { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.fan-group .win-tiles { display: flex; flex-wrap: wrap; gap: 3px; }
+
 /* 进张分析 */
 .shanten-info { text-align: center; padding: 10px 0 6px; color: var(--accent); font-size: 0.95rem; }
 .shanten-info strong { font-size: 1.1rem; }
