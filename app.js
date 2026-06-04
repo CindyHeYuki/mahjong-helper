@@ -1,10 +1,10 @@
-// 川麻助手 UI 状态与交互
+// 宸濋夯鍔╂墜 UI 鐘舵€佷笌浜や簰
 
 const state = {
     hand: [],
     melds: [],
     queMen: null,
-    maxHand: 14,  // 摸牌后总张数：14 - 副露占用
+    maxHand: 14,  // 鎽哥墝鍚庢€诲紶鏁帮細14 - 鍓湶鍗犵敤
 };
 
 function init() {
@@ -14,7 +14,7 @@ function init() {
     renderMelds();
 }
 
-// ---- 选牌区 ----
+// ---- 閫夌墝鍖?----
 function renderPicker() {
     for (const suit of SUITS) {
         const row = document.getElementById('suit-' + suit);
@@ -37,24 +37,24 @@ function makeTileInner(tile) {
     return `<span class="tile-val">${val}</span><span class="tile-suit">${SUIT_NAMES[suit]}</span>`;
 }
 
-// ---- 手牌操作 ----
+// ---- 鎵嬬墝鎿嶄綔 ----
 function addTile(tile) {
     updateMaxHand();
     if (state.hand.length >= state.maxHand) {
-        showMsg(`手牌已满（${state.maxHand}张）`);
+        showMsg(`鎵嬬墝宸叉弧锛?{state.maxHand}寮狅級`);
         return;
     }
     if (countTile(tile) >= 4) {
-        showMsg(`${getVal(tile)}${SUIT_NAMES[getSuit(tile)]} 已有4张`);
+        showMsg(`${getVal(tile)}${SUIT_NAMES[getSuit(tile)]} 宸叉湁4寮燻);
         return;
     }
     state.hand.push(tile);
-    renderHand();  // renderHand 内部调用 autoAnalyze，不再重复 clearResults
+    renderHand();  // renderHand 鍐呴儴璋冪敤 autoAnalyze锛屼笉鍐嶉噸澶?clearResults
 }
 
 function removeTile(idx) {
     state.hand.splice(idx, 1);
-    renderHand();  // 同上
+    renderHand();  // 鍚屼笂
 }
 
 function countTile(tile) {
@@ -63,13 +63,13 @@ function countTile(tile) {
     return inHand + inMelds;
 }
 
-// maxHand：摸牌后的暗手牌数 = 14 - 面子组数×3 - 杠数
+// maxHand锛氭懜鐗屽悗鐨勬殫鎵嬬墝鏁?= 14 - 闈㈠瓙缁勬暟脳3 - 鏉犳暟
 function updateMaxHand() {
     const kongCount = state.melds.filter(m => m.type === 'kong_open' || m.type === 'kong_closed').length;
     state.maxHand = 14 - state.melds.length * 3 - kongCount;
 }
 
-// ---- 手牌渲染 + 自动分析 ----
+// ---- 鎵嬬墝娓叉煋 + 鑷姩鍒嗘瀽 ----
 function renderHand() {
     updateMaxHand();
     const sorted = sortTiles(state.hand);
@@ -96,15 +96,52 @@ function renderHand() {
 
 function autoAnalyze() {
     if (state.hand.length === 0) { clearResults(); return; }
-    if (state.hand.length < state.maxHand) {
-        // 未摸牌，只提示还差几张
-        showResults(`<div class="hint">还差 <strong>${state.maxHand - state.hand.length}</strong> 张</div>`);
+    if (state.hand.length === state.maxHand) {
+        // 鎽哥墝鍚庯細鍏堟鏌ユ槸鍚﹀凡鑳?        if (isWinningHand(state.hand, state.melds)) {
+            const fans = getFanTypes(state.hand, state.melds, null);
+            const total = totalFan(fans);
+            const fanNames = fans.map(f => `${f.name}(${f.fan}鐣?`).join(' + ');
+            showResults(`<div class="win-banner">鑳＄墝锛?{total}鐣兓${fanNames}</div>`);
+        } else {
+            analyze();
+        }
+    } else if (state.hand.length === state.maxHand - 1) {
+        // 宸?寮狅細妫€娴嬫槸鍚﹀凡鍚墝
+        checkTenpaiState();
     } else {
-        analyze();
+        showResults(`<div class="hint">杩樺樊 <strong>${state.maxHand - state.hand.length}</strong> 寮?/div>`);
     }
 }
 
-// ---- 副露 ----
+function checkTenpaiState() {
+    const { hand, melds, queMen } = state;
+    const winTiles = [];
+    for (const suit of SUITS) {
+        if (queMen && suit === queMen) continue;
+        for (let val = 1; val <= 9; val++) {
+            const cand = val + suit;
+            if (isWinningHand([...hand, cand], melds)) winTiles.push(cand);
+        }
+    }
+    if (winTiles.length > 0) {
+        const tilesHtml = winTiles.map(t =>
+            `<div class="result-tile suit-${getSuit(t)}">${makeTileInner(t)}</div>`).join('');
+        showResults(`
+            <div class="result-card">
+                <div class="result-header">
+                    <span class="fan-badge tenpai-badge">宸插惉鐗屻兓绛?${winTiles.length} 寮?/span>
+                </div>
+                <div class="result-body">
+                    <span class="win-label">鑳＄墝寮狅細</span>
+                    <div class="win-tiles">${tilesHtml}</div>
+                </div>
+            </div>`);
+    } else {
+        showResults(`<div class="hint">杩樺樊 <strong>1</strong> 寮?/div>`);
+    }
+}
+
+// ---- 鍓湶 ----
 let pendingMeld = { type: 'pong', tiles: [] };
 
 function openMeldModal() {
@@ -175,22 +212,21 @@ function addToMeld(tile) {
 function confirmMeld() {
     const target = pendingMeld.type === 'pong' ? 3 : 4;
     if (pendingMeld.tiles.length !== target) {
-        showMsg(`请选满 ${target} 张同一张牌`);
+        showMsg(`璇烽€夋弧 ${target} 寮犲悓涓€寮犵墝`);
         return;
     }
     const tile = pendingMeld.tiles[0];
     if (countTile(tile) + target > 4) {
-        showMsg(`${getVal(tile)}${SUIT_NAMES[getSuit(tile)]} 总张数超过4张`);
+        showMsg(`${getVal(tile)}${SUIT_NAMES[getSuit(tile)]} 鎬诲紶鏁拌秴杩?寮燻);
         return;
     }
     state.melds.push({ type: pendingMeld.type, tiles: [...pendingMeld.tiles] });
     updateMaxHand();
-    // 若手牌超出新上限则截断
-    while (state.hand.length > state.maxHand) {
+    // 鑻ユ墜鐗岃秴鍑烘柊涓婇檺鍒欐埅鏂?    while (state.hand.length > state.maxHand) {
         state.hand.pop();
     }
     renderMelds();
-    renderHand();  // 内部调用 autoAnalyze
+    renderHand();  // 鍐呴儴璋冪敤 autoAnalyze
     closeMeldModal();
 }
 
@@ -200,7 +236,7 @@ function renderMelds() {
     state.melds.forEach((meld, idx) => {
         const div = document.createElement('div');
         div.className = 'meld-group';
-        const label = { pong: '碰', kong_open: '明杠', kong_closed: '暗杠' }[meld.type];
+        const label = { pong: '纰?, kong_open: '鏄庢潬', kong_closed: '鏆楁潬' }[meld.type];
         div.innerHTML = `<span class="meld-label">${label}</span>`;
         meld.tiles.forEach(tile => {
             const t = document.createElement('div');
@@ -210,7 +246,7 @@ function renderMelds() {
         });
         const del = document.createElement('button');
         del.className = 'meld-del';
-        del.textContent = '×';
+        del.textContent = '脳';
         del.addEventListener('click', () => {
             state.melds.splice(idx, 1);
             updateMaxHand();
@@ -222,7 +258,7 @@ function renderMelds() {
     });
 }
 
-// ---- 缺门 ----
+// ---- 缂洪棬 ----
 function setQueMen(suit) {
     state.queMen = state.queMen === suit ? null : suit;
     document.querySelectorAll('.que-btn').forEach(btn => {
@@ -231,9 +267,8 @@ function setQueMen(suit) {
     autoAnalyze();
 }
 
-// ---- 分析（摸牌后 14 张）----
-// 每种打法：能听牌的显示胡牌张+番型，不能听的显示有效进张
-function analyze() {
+// ---- 鍒嗘瀽锛堟懜鐗屽悗 14 寮狅級----
+// 姣忕鎵撴硶锛氳兘鍚墝鐨勬樉绀鸿儭鐗屽紶+鐣瀷锛屼笉鑳藉惉鐨勬樉绀烘湁鏁堣繘寮?function analyze() {
     const { hand, melds, queMen } = state;
     const meldTiles = melds.flatMap(m => m.tiles);
     const results = [];
@@ -247,8 +282,7 @@ function analyze() {
         const remaining = [...hand];
         remaining.splice(i, 1);
 
-        // 检测听牌
-        const winTiles = [];
+        // 妫€娴嬪惉鐗?        const winTiles = [];
         for (const suit of SUITS) {
             if (queMen && suit === queMen) continue;
             for (let val = 1; val <= 9; val++) {
@@ -261,7 +295,7 @@ function analyze() {
             const fans = getFanTypes([...remaining, winTiles[0]], melds, null);
             results.push({ discard, type: 'tenpai', winTiles, fans, total: totalFan(fans) });
         } else {
-            // 进张分析
+            // 杩涘紶鍒嗘瀽
             const remShanten = calcShanten(remaining, melds);
             const effectiveTiles = [];
             let totalCount = 0;
@@ -284,11 +318,11 @@ function analyze() {
     }
 
     if (results.length === 0) {
-        showResults('<div class="no-tenpai">无分析结果</div>');
+        showResults('<div class="no-tenpai">鏃犲垎鏋愮粨鏋?/div>');
         return;
     }
 
-    // 听牌出法优先，按番数排；进张按向听数、张数排
+    // 鍚墝鍑烘硶浼樺厛锛屾寜鐣暟鎺掞紱杩涘紶鎸夊悜鍚暟銆佸紶鏁版帓
     results.sort((a, b) => {
         if (a.type === 'tenpai' && b.type !== 'tenpai') return -1;
         if (a.type !== 'tenpai' && b.type === 'tenpai') return 1;
@@ -305,43 +339,43 @@ function renderCombinedResults(results) {
 
     results.forEach(r => {
         if (r.type === 'tenpai' && !tenpaiHeaderShown) {
-            html += '<div class="shanten-group-label">听牌出法</div>';
+            html += '<div class="shanten-group-label">鍚墝鍑烘硶</div>';
             tenpaiHeaderShown = true;
         }
         if (r.type === 'effective' && !effectiveHeaderShown) {
-            html += '<div class="shanten-group-label">进张出法</div>';
+            html += '<div class="shanten-group-label">杩涘紶鍑烘硶</div>';
             effectiveHeaderShown = true;
         }
 
         if (r.type === 'tenpai') {
-            const fanNames = r.fans.map(f => `${f.name}(${f.fan}番)`).join(' + ');
+            const fanNames = r.fans.map(f => `${f.name}(${f.fan}鐣?`).join(' + ');
             const tilesHtml = r.winTiles.map(t =>
                 `<div class="result-tile suit-${getSuit(t)}">${makeTileInner(t)}</div>`).join('');
             html += `
             <div class="result-card">
                 <div class="result-header">
-                    <span class="discard-label">打</span>
+                    <span class="discard-label">鎵?/span>
                     <div class="result-tile suit-${getSuit(r.discard)}">${makeTileInner(r.discard)}</div>
-                    <span class="fan-badge">${r.total}番・${fanNames}</span>
+                    <span class="fan-badge">${r.total}鐣兓${fanNames}</span>
                 </div>
                 <div class="result-body">
-                    <span class="win-label">听 ${r.winTiles.length} 张：</span>
+                    <span class="win-label">鍚?${r.winTiles.length} 寮狅細</span>
                     <div class="win-tiles">${tilesHtml}</div>
                 </div>
             </div>`;
         } else {
-            const sLabel = r.shanten === 0 ? '听牌' : `${r.shanten}向听`;
+            const sLabel = r.shanten === 0 ? '鍚墝' : `${r.shanten}鍚戝惉`;
             const tilesHtml = r.effectiveTiles.map(t =>
                 `<div class="result-tile suit-${getSuit(t)}">${makeTileInner(t)}</div>`).join('');
             html += `
             <div class="result-card">
                 <div class="result-header">
-                    <span class="discard-label">打</span>
+                    <span class="discard-label">鎵?/span>
                     <div class="result-tile suit-${getSuit(r.discard)}">${makeTileInner(r.discard)}</div>
-                    <span class="fan-badge">${sLabel} · 进张 ${r.totalCount} 张</span>
+                    <span class="fan-badge">${sLabel} 路 杩涘紶 ${r.totalCount} 寮?/span>
                 </div>
                 <div class="result-body">
-                    <span class="win-label">有效进张：</span>
+                    <span class="win-label">鏈夋晥杩涘紶锛?/span>
                     <div class="win-tiles">${tilesHtml}</div>
                 </div>
             </div>`;
@@ -367,7 +401,7 @@ function showMsg(msg) {
     setTimeout(() => el.classList.remove('show'), 2000);
 }
 
-// ---- 事件绑定 ----
+// ---- 浜嬩欢缁戝畾 ----
 function bindEvents() {
     document.getElementById('clear-hand').addEventListener('click', () => {
         state.hand = [];
