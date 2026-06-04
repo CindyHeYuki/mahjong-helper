@@ -125,16 +125,29 @@ function checkTenpaiState() {
         }
     }
     if (winTiles.length > 0) {
-        const tilesHtml = winTiles.map(t =>
-            `<div class="result-tile suit-${getSuit(t)}">${makeTileInner(t)}</div>`).join('');
+        const fanGroups = [];
+        for (const wt of winTiles) {
+            const fans = getFanTypes([...hand, wt], melds, null);
+            const total = totalFan(fans);
+            const key = fans.map(f => f.name).join(',');
+            const existing = fanGroups.find(g => g.key === key);
+            if (existing) { existing.tiles.push(wt); }
+            else { fanGroups.push({ key, fans, total, tiles: [wt] }); }
+        }
+        fanGroups.sort((a, b) => b.total - a.total);
+        const groupsHtml = fanGroups.map(fg => {
+            const fanNames = fg.fans.map(f => `${f.name}(${f.fan}番)`).join(' + ');
+            const tilesHtml = fg.tiles.map(t =>
+                `<div class="result-tile suit-${getSuit(t)}">${makeTileInner(t)}</div>`).join('');
+            return `<div class="fan-group"><span class="fan-badge tenpai-badge">${fg.total}番・${fanNames}</span><div class="win-tiles">${tilesHtml}</div></div>`;
+        }).join('');
         showResults(`
             <div class="result-card">
                 <div class="result-header">
                     <span class="fan-badge tenpai-badge">已听牌・等 ${winTiles.length} 张</span>
                 </div>
-                <div class="result-body">
-                    <span class="win-label">胡牌张：</span>
-                    <div class="win-tiles">${tilesHtml}</div>
+                <div class="result-body multi-fan">
+                    ${groupsHtml}
                 </div>
             </div>`);
     } else {
@@ -296,8 +309,17 @@ function analyze() {
         }
 
         if (winTiles.length > 0) {
-            const fans = getFanTypes([...remaining, winTiles[0]], melds, null);
-            results.push({ discard, type: 'tenpai', winTiles, fans, total: totalFan(fans) });
+            const fanGroups = [];
+            for (const wt of winTiles) {
+                const fans = getFanTypes([...remaining, wt], melds, null);
+                const total = totalFan(fans);
+                const key = fans.map(f => f.name).join(',');
+                const existing = fanGroups.find(g => g.key === key);
+                if (existing) { existing.tiles.push(wt); }
+                else { fanGroups.push({ key, fans, total, tiles: [wt] }); }
+            }
+            fanGroups.sort((a, b) => b.total - a.total);
+            results.push({ discard, type: 'tenpai', fanGroups, total: fanGroups[0].total, winTiles });
         } else {
             // 进张分析
             const remShanten = calcShanten(remaining, melds);
@@ -352,19 +374,21 @@ function renderCombinedResults(results) {
         }
 
         if (r.type === 'tenpai') {
-            const fanNames = r.fans.map(f => `${f.name}(${f.fan}番)`).join(' + ');
-            const tilesHtml = r.winTiles.map(t =>
-                `<div class="result-tile suit-${getSuit(t)}">${makeTileInner(t)}</div>`).join('');
+            const groupsHtml = r.fanGroups.map(fg => {
+                const fanNames = fg.fans.map(f => `${f.name}(${f.fan}番)`).join(' + ');
+                const tilesHtml = fg.tiles.map(t =>
+                    `<div class="result-tile suit-${getSuit(t)}">${makeTileInner(t)}</div>`).join('');
+                return `<div class="fan-group"><span class="fan-badge">${fg.total}番・${fanNames}</span><div class="win-tiles">${tilesHtml}</div></div>`;
+            }).join('');
             html += `
             <div class="result-card">
                 <div class="result-header">
                     <span class="discard-label">打</span>
                     <div class="result-tile suit-${getSuit(r.discard)}">${makeTileInner(r.discard)}</div>
-                    <span class="fan-badge">${r.total}番・${fanNames}</span>
+                    <span class="win-label">听 ${r.winTiles.length} 张</span>
                 </div>
-                <div class="result-body">
-                    <span class="win-label">听 ${r.winTiles.length} 张：</span>
-                    <div class="win-tiles">${tilesHtml}</div>
+                <div class="result-body multi-fan">
+                    ${groupsHtml}
                 </div>
             </div>`;
         } else {
