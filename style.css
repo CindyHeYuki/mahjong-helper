@@ -238,3 +238,12 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
 .modal-actions button { flex: 1; padding: 10px; border-radius: 10px; border: none; font-size: 1rem; font-weight: bold; cursor: pointer; }
 #meld-confirm { background: var(--accent); color: white; }
 #meld-cancel { background: #eee; color: #666; }
+
+/* 进张分析 */
+.shanten-info { text-align: center; padding: 10px 0 6px; color: var(--accent); font-size: 0.95rem; }
+.shanten-info strong { font-size: 1.1rem; }
+.shanten-group-label {
+    text-align: center; color: #888; font-size: 0.82rem;
+    padding: 4px 0; margin: 6px 0 2px;
+    border-top: 1px dashed var(--border);
+}
