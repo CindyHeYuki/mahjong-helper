@@ -81,6 +81,7 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
     color: white;
     line-height: 1; gap: 2px;
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 .tile-btn:active { transform: scale(.9); }
 .tile-btn.suit-m { background: var(--man); border-color: #922b21; }
@@ -113,6 +114,7 @@ section h2 { font-size: 0.9rem; color: #666; margin-bottom: 10px; letter-spacing
     transition: transform .1s;
     border: 2px solid rgba(0,0,0,.15);
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 .hand-tile:active { transform: scale(.88); }
 .hand-tile.suit-m { background: var(--man); }
