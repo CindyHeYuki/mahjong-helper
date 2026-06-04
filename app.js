@@ -125,20 +125,22 @@ function checkTenpaiState() {
         }
     }
     if (winTiles.length > 0) {
+        const meldTiles = melds.flatMap(m => m.tiles);
         const fanGroups = [];
         for (const wt of winTiles) {
             const fans = getFanTypes([...hand, wt], melds, null);
             const total = totalFan(fans);
+            const left = 4 - hand.filter(t => t === wt).length - meldTiles.filter(t => t === wt).length;
             const key = fans.map(f => f.name).join(',');
             const existing = fanGroups.find(g => g.key === key);
-            if (existing) { existing.tiles.push(wt); }
-            else { fanGroups.push({ key, fans, total, tiles: [wt] }); }
+            if (existing) { existing.tiles.push({ tile: wt, left }); }
+            else { fanGroups.push({ key, fans, total, tiles: [{ tile: wt, left }] }); }
         }
         fanGroups.sort((a, b) => b.total - a.total);
         const groupsHtml = fanGroups.map(fg => {
             const fanNames = fg.fans.map(f => `${f.name}(${f.fan}番)`).join(' + ');
-            const tilesHtml = fg.tiles.map(t =>
-                `<div class="result-tile suit-${getSuit(t)}">${makeTileInner(t)}</div>`).join('');
+            const tilesHtml = fg.tiles.map(({ tile: t, left }) =>
+                `<div class="win-tile-item"><div class="result-tile suit-${getSuit(t)}">${makeTileInner(t)}</div><span class="tile-left">×${left}</span></div>`).join('');
             return `<div class="fan-group"><span class="fan-badge tenpai-badge">${fg.total}番・${fanNames}</span><div class="win-tiles">${tilesHtml}</div></div>`;
         }).join('');
         showResults(`
@@ -313,10 +315,11 @@ function analyze() {
             for (const wt of winTiles) {
                 const fans = getFanTypes([...remaining, wt], melds, null);
                 const total = totalFan(fans);
+                const left = 4 - remaining.filter(t => t === wt).length - meldTiles.filter(t => t === wt).length;
                 const key = fans.map(f => f.name).join(',');
                 const existing = fanGroups.find(g => g.key === key);
-                if (existing) { existing.tiles.push(wt); }
-                else { fanGroups.push({ key, fans, total, tiles: [wt] }); }
+                if (existing) { existing.tiles.push({ tile: wt, left }); }
+                else { fanGroups.push({ key, fans, total, tiles: [{ tile: wt, left }] }); }
             }
             fanGroups.sort((a, b) => b.total - a.total);
             results.push({ discard, type: 'tenpai', fanGroups, total: fanGroups[0].total, winTiles });
@@ -376,8 +379,8 @@ function renderCombinedResults(results) {
         if (r.type === 'tenpai') {
             const groupsHtml = r.fanGroups.map(fg => {
                 const fanNames = fg.fans.map(f => `${f.name}(${f.fan}番)`).join(' + ');
-                const tilesHtml = fg.tiles.map(t =>
-                    `<div class="result-tile suit-${getSuit(t)}">${makeTileInner(t)}</div>`).join('');
+                const tilesHtml = fg.tiles.map(({ tile: t, left }) =>
+                    `<div class="win-tile-item"><div class="result-tile suit-${getSuit(t)}">${makeTileInner(t)}</div><span class="tile-left">×${left}</span></div>`).join('');
                 return `<div class="fan-group"><span class="fan-badge">${fg.total}番・${fanNames}</span><div class="win-tiles">${tilesHtml}</div></div>`;
             }).join('');
             html += `
