@@ -247,3 +247,119 @@ function analyzeTenpai(handTiles, melds, queMen) {
     results.sort((a, b) => b.total - a.total || b.winTiles.length - a.winTiles.length);
     return { results };
 }
+
+// ---- 向听数计算 ----
+
+function calcShanten(concealedTiles, melds) {
+    if (!concealedTiles || concealedTiles.length === 0) return 8;
+    const sorted = sortTiles(concealedTiles);
+    const meldsNeeded = 4 - melds.length;
+    let best = meldsNeeded * 2;
+    if (melds.length === 0) best = Math.min(best, _shanten7Pairs(sorted));
+    best = Math.min(best, _shantenStd(sorted, meldsNeeded));
+    return best;
+}
+
+function _shanten7Pairs(sorted) {
+    const cnt = {};
+    for (const t of sorted) cnt[t] = (cnt[t] || 0) + 1;
+    const pairs = Object.values(cnt).filter(v => v >= 2).length;
+    return 6 - Math.min(pairs, 7);
+}
+
+function _shantenStd(sorted, meldsNeeded) {
+    let best = [meldsNeeded * 2];
+
+    function dfs(tiles, mentuLeft, taatsu, jantou) {
+        const s = mentuLeft * 2 - taatsu - (jantou ? 1 : 0);
+        if (s < best[0]) best[0] = s;
+        if (tiles.length === 0 || best[0] <= -1) return;
+
+        const t0 = tiles[0], suit = getSuit(t0), val = getVal(t0);
+
+        // 刻子
+        if (mentuLeft > 0 && tiles.length >= 3 && tiles[1] === t0 && tiles[2] === t0)
+            dfs(tiles.slice(3), mentuLeft - 1, taatsu, jantou);
+
+        // 顺子
+        if (mentuLeft > 0 && val <= 7) {
+            const t2 = (val+1)+suit, t3 = (val+2)+suit;
+            const a = [...tiles.slice(1)], i2 = a.indexOf(t2);
+            if (i2 !== -1) { a.splice(i2,1); const i3 = a.indexOf(t3);
+                if (i3 !== -1) { a.splice(i3,1); dfs(a, mentuLeft-1, taatsu, jantou); } }
+        }
+
+        // 将牌对
+        if (!jantou && tiles.length >= 2 && tiles[1] === t0)
+            dfs(tiles.slice(2), mentuLeft, taatsu, true);
+
+        if (taatsu < mentuLeft) {
+            // 对子搭子
+            if (tiles.length >= 2 && tiles[1] === t0)
+                dfs(tiles.slice(2), mentuLeft, taatsu+1, jantou);
+            // 连张搭子
+            if (val <= 8) {
+                const a = [...tiles.slice(1)], idx = a.indexOf((val+1)+suit);
+                if (idx !== -1) { a.splice(idx,1); dfs(a, mentuLeft, taatsu+1, jantou); }
+            }
+            // 嵌张搭子
+            if (val <= 7) {
+                const a = [...tiles.slice(1)], idx = a.indexOf((val+2)+suit);
+                if (idx !== -1) { a.splice(idx,1); dfs(a, mentuLeft, taatsu+1, jantou); }
+            }
+        }
+
+        // 跳过孤张（同牌只跳一次）
+        let skip = 1;
+        while (skip < tiles.length && tiles[skip] === t0) skip++;
+        dfs(tiles.slice(skip), mentuLeft, taatsu, jantou);
+    }
+
+    dfs(sorted, meldsNeeded, 0, false);
+    return best[0];
+}
+
+// ---- 进张分析（听牌前任意手牌）----
+// handTiles：当前暗手牌（任意张数）
+// 返回每种打法的向听数、有效进张列表和张数
+function analyzeEffective(handTiles, melds, queMen) {
+    if (handTiles.length === 0) return { results: [], currentShanten: 8 };
+
+    const meldTiles = melds.flatMap(m => m.tiles);
+    const currentShanten = calcShanten(handTiles, melds);
+    const results = [];
+    const tried = new Set();
+
+    for (let i = 0; i < handTiles.length; i++) {
+        const discard = handTiles[i];
+        if (tried.has(discard)) continue;
+        tried.add(discard);
+
+        const remaining = [...handTiles];
+        remaining.splice(i, 1);
+        const remShanten = calcShanten(remaining, melds);
+
+        const effectiveTiles = [];
+        let totalCount = 0;
+
+        for (const suit of SUITS) {
+            if (queMen && suit === queMen) continue;
+            for (let val = 1; val <= 9; val++) {
+                const cand = val + suit;
+                const used = remaining.filter(t => t === cand).length
+                           + meldTiles.filter(t => t === cand).length;
+                const left = 4 - used;
+                if (left <= 0) continue;
+                if (calcShanten([...remaining, cand], melds) < remShanten) {
+                    effectiveTiles.push(cand);
+                    totalCount += left;
+                }
+            }
+        }
+
+        results.push({ discard, shanten: remShanten, effectiveTiles, totalCount });
+    }
+
+    results.sort((a, b) => a.shanten - b.shanten || b.totalCount - a.totalCount);
+    return { results, currentShanten };
+}
